@@ -1,0 +1,11 @@
+# globals.py example:
+dev_handle = None
+pixels = 0
+wavelength = []
+spectraldata = []
+darkspectraldata = None
+averagedspectrum = None
+NrScanned = 0
+savedark = False
+dark_ready = False
+dark_spectra = []
