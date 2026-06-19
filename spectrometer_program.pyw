@@ -13,7 +13,12 @@ import form1
 import shutter_dialog
 import numpy as np
 import time
-from shutter import ShutterController, ShutterError
+from shutter import (
+    ShutterController,
+    ShutterError,
+    RotationController,
+    RotationError,
+)
 from simulator import SpectrometerSimulator
 from datetime import datetime
 from pyqtgraph import PlotDataItem
@@ -29,16 +34,24 @@ class ShutterConfigDialog(QDialog, shutter_dialog.Ui_ShutterDialog):
     simulation toggle).
     """
 
-    def __init__(self, shutter, parent=None):
+    def __init__(self, shutter, rotation, parent=None):
         super().__init__(parent)
         self.setupUi(self)
         self.shutter = shutter
+        self.rotation = rotation
 
+        self.RotationTarget.setValidator(QDoubleValidator(self))
+
+        self.InitShutter.clicked.connect(self.on_init_shutter)
+        self.InitRotation.clicked.connect(self.on_init_rotation)
         self.ShutterOpen.clicked.connect(self.on_open)
         self.ShutterClose.clicked.connect(self.on_close)
+        self.MoveRotation.clicked.connect(self.on_move_rotation)
         self.MeasureLatencyBtn.clicked.connect(self.on_measure_latency)
         self.SimulateData.setChecked(getattr(globals, "simulate_data", False))
         self.SimulateData.toggled.connect(self.on_simulate_toggled)
+
+        self._refresh_status()
 
     def _report(self, message):
         parent = self.parent()
@@ -50,6 +63,44 @@ class ShutterConfigDialog(QDialog, shutter_dialog.Ui_ShutterDialog):
         if parent is not None and hasattr(parent, "update_shutter_button_style"):
             parent.update_shutter_button_style()
 
+    def _refresh_status(self):
+        self.ShutterStatus.setText(self.shutter.status_text())
+        self.RotationStatus.setText(self.rotation.status_text())
+
+    def on_init_shutter(self):
+        try:
+            self.shutter.initialize()
+        except ShutterError as e:
+            self._report(str(e))
+        except Exception as e:
+            self._report(f"Shutter error: {e}")
+        self._refresh_status()
+        self._refresh_main_button()
+
+    def on_init_rotation(self):
+        try:
+            self.rotation.initialize()
+        except RotationError as e:
+            self._report(str(e))
+        except Exception as e:
+            self._report(f"Rotation error: {e}")
+        self._refresh_status()
+
+    def on_move_rotation(self):
+        text = self.RotationTarget.text().strip()
+        try:
+            target = float(text)
+        except ValueError:
+            self._report("Enter a rotation target in degrees")
+            return
+        try:
+            self.rotation.move_to(target)
+        except RotationError as e:
+            self._report(str(e))
+        except Exception as e:
+            self._report(f"Rotation error: {e}")
+        self._refresh_status()
+
     def on_open(self):
         try:
             self.shutter.open()
@@ -60,6 +111,7 @@ class ShutterConfigDialog(QDialog, shutter_dialog.Ui_ShutterDialog):
             self._report(f"Shutter error: {e}")
             return
         self._refresh_main_button()
+        self._refresh_status()
 
     def on_close(self):
         try:
@@ -71,6 +123,7 @@ class ShutterConfigDialog(QDialog, shutter_dialog.Ui_ShutterDialog):
             self._report(f"Shutter error: {e}")
             return
         self._refresh_main_button()
+        self._refresh_status()
 
     def _read_peak(self):
         """Current peak signal level from the live (or simulated) spectrum.
@@ -139,6 +192,7 @@ class MainWindow(QMainWindow, form1.Ui_MainWindow):
         self.setWindowTitle("Spectra Explorer")
         self.create_title_bar()
         self.shutter = ShutterController()
+        self.rotation = RotationController()
         self.simulator = SpectrometerSimulator()
         self.AvgPresetEdit.setValidator(QIntValidator(1, 32767, self))
         self.AvgPresetEdit.textChanged.connect(self.update_avg_preset_button_text)
@@ -195,6 +249,11 @@ class MainWindow(QMainWindow, form1.Ui_MainWindow):
                 self.shutter.disconnect()
             except Exception as shutter_err:
                 print(f"Error disconnecting shutter: {shutter_err}")
+
+            try:
+                self.rotation.disconnect()
+            except Exception as rotation_err:
+                print(f"Error disconnecting rotation stage: {rotation_err}")
 
             # Release AvaSpec library
             AVS_Done()
@@ -471,7 +530,7 @@ class MainWindow(QMainWindow, form1.Ui_MainWindow):
 
     @pyqtSlot()
     def on_ShutterConfig_clicked(self):
-        dialog = ShutterConfigDialog(self.shutter, self)
+        dialog = ShutterConfigDialog(self.shutter, self.rotation, self)
         dialog.exec_()
         self.update_shutter_button_style()
 
