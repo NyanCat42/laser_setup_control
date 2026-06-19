@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Form implementation generated from reading ui file 'form1.ui'
+# Form implementation generated from reading ui file 'QT_design/form1.ui'
 #
 # Created by: PyQt5 UI code generator 5.15.11
 #
@@ -9,60 +9,58 @@
 
 
 from PyQt5 import QtCore, QtGui, QtWidgets
-from PyQt5.QtWidgets import QProgressBar
 
 
 class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
         MainWindow.setObjectName("MainWindow")
-        MainWindow.resize(1389, 903)
+        MainWindow.resize(1276, 1180)
         sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Maximum, QtWidgets.QSizePolicy.Maximum)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
         sizePolicy.setHeightForWidth(MainWindow.sizePolicy().hasHeightForWidth())
         MainWindow.setSizePolicy(sizePolicy)
-        MainWindow.setStyleSheet("""
-QMainWindow {
-    background-color: rgb(40, 43, 48);
-    color: rgb(153, 170, 181);
-    font-size: 10pt; /* Add this for default font size */
-}
-
-QPushButton {
-    background-color: rgb(60, 63, 68);
-    color: rgb(153, 170, 181);
-    border: 1px solid rgb(100, 100, 100);
-    border-radius: 5px;
-    font-size: 10pt; /* Optional: Apply font size specifically for buttons */
-}
-
-QPushButton:hover {
-    background-color: rgb(70, 73, 78);
-    color: rgb(255, 255, 255); /* Make text whiter when hovering */
-}
-
-QLineEdit {
-    background-color: rgb(50, 53, 58);
-    color: rgb(220, 220, 220);
-    border: 1px solid rgb(100, 100, 100);
-    border-radius: 3px;
-    font-size: 10pt;
-}
-
-QGroupBox {
-    color: rgb(153, 170, 181);
-    border: 1px solid rgb(100, 100, 100);
-    border-radius: 5px;
-    margin-top: 10px;
-    font-size: 10pt;
-}
-
-QLabel {
-    color: rgb(153, 170, 181);
-    font-size: 10pt;
-}
-""")
-
+        MainWindow.setStyleSheet("QMainWindow {\n"
+"    background-color: rgb(40, 43, 48);\n"
+"    color: rgb(153, 170, 181);\n"
+"}\n"
+"\n"
+"QPushButton {\n"
+"    background-color: rgb(60, 63, 68);\n"
+"    color: rgb(153, 170, 181);\n"
+"    border: 1px solid rgb(100, 100, 100);\n"
+"    border-radius: 5px;\n"
+"}\n"
+"\n"
+"QPushButton:hover {\n"
+"    background-color: rgb(70, 73, 78);\n"
+"    color: rgb(255, 255, 255); /* Make text whiter when hovering */\n"
+"}\n"
+"\n"
+"QLineEdit {\n"
+"    background-color: rgb(50, 53, 58);\n"
+"    color: rgb(220, 220, 220);\n"
+"    border: 1px solid rgb(100, 100, 100);\n"
+"    border-radius: 3px;\n"
+"}\n"
+"\n"
+"QGroupBox {\n"
+"    color: rgb(153, 170, 181);\n"
+"    border: 1px solid rgb(100, 100, 100);\n"
+"    border-radius: 5px;\n"
+"    margin-top: 10px;\n"
+"}\n"
+"\n"
+"QGroupBox::title {\n"
+"    subcontrol-origin: margin;\n"
+"    subcontrol-position: top center;\n"
+"    padding: 0 3px;\n"
+"}\n"
+"\n"
+"QLabel {\n"
+"    color: rgb(153, 170, 181);\n"
+"}\n"
+"")
         self.centralwidget = QtWidgets.QWidget(MainWindow)
         self.centralwidget.setObjectName("centralwidget")
         self.SaveDarkBtn = QtWidgets.QPushButton(self.centralwidget)
@@ -120,7 +118,7 @@ QLabel {
         self.label_3.setFont(font)
         self.label_3.setObjectName("label_3")
         self.label_4 = QtWidgets.QLabel(self.groupBox)
-        self.label_4.setGeometry(QtCore.QRect(10, 300, 191, 21))
+        self.label_4.setGeometry(QtCore.QRect(10, 300, 159, 17))
         font = QtGui.QFont()
         font.setPointSize(10)
         self.label_4.setFont(font)
@@ -141,7 +139,7 @@ QLabel {
         self.StopMeasBtn.setFont(font)
         self.StopMeasBtn.setStyleSheet("QPushButton {\n"
 "    background-color: rgb(200, 50, 50);\n"
-"    color: rgb(255, 255, 240);\n"
+"    color: white;\n"
 "    border: 1px solid rgb(150, 30, 30);\n"
 "    border-radius: 5px;\n"
 "}\n"
@@ -157,16 +155,18 @@ QLabel {
         font.setPointSize(10)
         self.TrigSaveBtn.setFont(font)
         self.TrigSaveBtn.setObjectName("TrigSaveBtn")
-        # Create a layout for the plot widget to ensure no spacing issues
-        self.plot_layout = QtWidgets.QVBoxLayout(self.centralwidget)
-        self.plot_layout.setContentsMargins(280, 40, 0, 0)  # Adjust margins to position the plot
-        self.plot_layout.setSpacing(0)  # Ensure no space between elements
-        self.plot_layout.setObjectName("plot_layout")
-
         self.plot = Plot(self.centralwidget)
+        self.plot.setGeometry(QtCore.QRect(280, 50, 1081, 821))
         self.plot.setObjectName("plot")
-        self.plot_layout.addWidget(self.plot)
-
+        self.Avg200StartBtn = QtWidgets.QPushButton(self.centralwidget)
+        self.Avg200StartBtn.setGeometry(QtCore.QRect(30, 820, 221, 51))
+        self.Avg200StartBtn.setObjectName("Avg200StartBtn")
+        self.AvgPresetEdit = QtWidgets.QLineEdit(self.centralwidget)
+        self.AvgPresetEdit.setGeometry(QtCore.QRect(30, 890, 113, 27))
+        self.AvgPresetEdit.setObjectName("AvgPresetEdit")
+        self.ShutterBtn = QtWidgets.QPushButton(self.centralwidget)
+        self.ShutterBtn.setGeometry(QtCore.QRect(30, 940, 221, 51))
+        self.ShutterBtn.setObjectName("ShutterBtn")
         MainWindow.setCentralWidget(self.centralwidget)
 
         self.retranslateUi(MainWindow)
@@ -194,4 +194,7 @@ QLabel {
         self.StartMeasBtn.setText(_translate("MainWindow", "Start Measurements"))
         self.StopMeasBtn.setText(_translate("MainWindow", "Stop Measurements"))
         self.TrigSaveBtn.setText(_translate("MainWindow", "Trigger Start"))
+        self.Avg200StartBtn.setText(_translate("MainWindow", "200 Avg Start"))
+        self.AvgPresetEdit.setText(_translate("MainWindow", "200"))
+        self.ShutterBtn.setText(_translate("MainWindow", "Shutter Closed"))
 from plot import Plot

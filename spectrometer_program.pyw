@@ -27,9 +27,13 @@ class MainWindow(QMainWindow, form1.Ui_MainWindow):
         self.setupUi(self)
         self.setWindowTitle("Spectra Explorer")
         self.create_title_bar()
-        self.create_200_avg_button()
         self.shutter = ShutterController()
-        self.create_shutter_button()
+        self.AvgPresetEdit.setValidator(QIntValidator(1, 32767, self))
+        self.AvgPresetEdit.textChanged.connect(self.update_avg_preset_button_text)
+        # on_Avg200StartBtn_clicked / on_ShutterBtn_clicked are auto-connected by
+        # connectSlotsByName() in setupUi() — connecting them again here would fire
+        # the slot twice per click (toggle() would open then immediately close).
+        self.update_shutter_button_style()
         self.showMaximized()
 
         # Initialize UI fields
@@ -323,36 +327,6 @@ class MainWindow(QMainWindow, form1.Ui_MainWindow):
         # Set title bar position at the top
         self.title_bar.setGeometry(0, 0, self.width(), 24)
 
-    def create_200_avg_button(self):
-        self.Avg200StartBtn = QPushButton(self.centralwidget)
-        self.Avg200StartBtn.setGeometry(QRect(30, 810, 221, 41))
-        font = QFont()
-        font.setPointSize(10)
-        self.Avg200StartBtn.setFont(font)
-        self.Avg200StartBtn.setObjectName("Avg200StartBtn")
-        self.Avg200StartBtn.setText("200 Avg Start")
-        self.Avg200StartBtn.clicked.connect(self.on_Avg200StartBtn_clicked)
-        self.Avg200StartBtn.show()
-
-        self.AvgPresetEdt = QLineEdit(self.centralwidget)
-        self.AvgPresetEdt.setGeometry(QRect(30, 860, 101, 31))
-        self.AvgPresetEdt.setValidator(QIntValidator(1, 32767, self))
-        self.AvgPresetEdt.setText("200")
-        self.AvgPresetEdt.setObjectName("AvgPresetEdt")
-        self.AvgPresetEdt.textChanged.connect(self.update_avg_preset_button_text)
-        self.AvgPresetEdt.show()
-
-    def create_shutter_button(self):
-        self.ShutterBtn = QPushButton(self.centralwidget)
-        self.ShutterBtn.setGeometry(QRect(30, 910, 221, 41))
-        font = QFont()
-        font.setPointSize(10)
-        self.ShutterBtn.setFont(font)
-        self.ShutterBtn.setObjectName("ShutterBtn")
-        self.ShutterBtn.clicked.connect(self.on_ShutterBtn_clicked)
-        self.ShutterBtn.show()
-        self.update_shutter_button_style()
-
     def update_shutter_button_style(self):
         if self.shutter.is_closed:
             self.ShutterBtn.setText("Shutter Closed")
@@ -392,7 +366,7 @@ class MainWindow(QMainWindow, form1.Ui_MainWindow):
 
     def get_avg_preset_value(self, show_error=True):
         try:
-            averages = int(self.AvgPresetEdt.text())
+            averages = int(self.AvgPresetEdit.text())
         except ValueError:
             if show_error:
                 self.show_info_message("Preset average must be numeric")
@@ -481,7 +455,7 @@ class MainWindow(QMainWindow, form1.Ui_MainWindow):
         self.StartMeasBtn.setEnabled(not finite_running)
         self.TrigSaveBtn.setEnabled(not finite_running)
         self.Avg200StartBtn.setEnabled(not finite_running)
-        self.AvgPresetEdt.setEnabled(not finite_running)
+        self.AvgPresetEdit.setEnabled(not finite_running)
         self.SaveDarkBtn.setEnabled(not finite_running)
         self.StopMeasBtn.setEnabled(self.acquisition_mode != "idle")
 

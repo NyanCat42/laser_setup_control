@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1389</width>
-    <height>903</height>
+    <width>1276</width>
+    <height>1180</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -233,8 +233,8 @@ QLabel {
       <rect>
        <x>10</x>
        <y>300</y>
-       <width>191</width>
-       <height>21</height>
+       <width>159</width>
+       <height>17</height>
       </rect>
      </property>
      <property name="font">
@@ -306,7 +306,7 @@ QPushButton:hover {
      <string>Stop Measurements</string>
     </property>
    </widget>
-   <widget class="QPushButton" name="TriggerStartBtn">
+   <widget class="QPushButton" name="TrigSaveBtn">
     <property name="geometry">
      <rect>
       <x>30</x>
@@ -334,45 +334,43 @@ QPushButton:hover {
      </rect>
     </property>
    </widget>
-   <widget class="QLabel" name="label_meas_time">
-    <property name="geometry">
-     <rect>
-      <x>30</x>
-      <y>850</y>
-      <width>101</width>
-      <height>41</height>
-     </rect>
-    </property>
-    <property name="font">
-     <font>
-      <pointsize>10</pointsize>
-     </font>
-    </property>
-    <property name="styleSheet">
-     <string notr="true">background-color: rgb(50, 53, 58);
-padding-left: 8px;
-border-radius: 6px;</string>
-    </property>
-    <property name="text">
-     <string>TextLabel</string>
-    </property>
-   </widget>
-   <widget class="QLabel" name="label_6">
+   <widget class="QPushButton" name="Avg200StartBtn">
     <property name="geometry">
      <rect>
       <x>30</x>
       <y>820</y>
-      <width>191</width>
-      <height>21</height>
+      <width>221</width>
+      <height>51</height>
      </rect>
     </property>
-    <property name="font">
-     <font>
-      <pointsize>10</pointsize>
-     </font>
+    <property name="text">
+     <string>200 Avg Start</string>
+    </property>
+   </widget>
+   <widget class="QLineEdit" name="AvgPresetEdit">
+    <property name="geometry">
+     <rect>
+      <x>30</x>
+      <y>890</y>
+      <width>113</width>
+      <height>27</height>
+     </rect>
     </property>
     <property name="text">
-     <string>Measured integration Time [ms]</string>
+     <string>200</string>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="ShutterBtn">
+    <property name="geometry">
+     <rect>
+      <x>30</x>
+      <y>940</y>
+      <width>221</width>
+      <height>51</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Shutter Closed</string>
     </property>
    </widget>
   </widget>
@@ -381,7 +379,7 @@ border-radius: 6px;</string>
   <customwidget>
    <class>Plot</class>
    <extends>QWidget</extends>
-   <header>plot.py</header>
+   <header>plot</header>
    <container>1</container>
   </customwidget>
  </customwidgets>
@@ -394,7 +392,7 @@ border-radius: 6px;</string>
   <tabstop>NumTrigMeasEdt</tabstop>
   <tabstop>StartMeasBtn</tabstop>
   <tabstop>StopMeasBtn</tabstop>
-  <tabstop>TriggerStartBtn</tabstop>
+  <tabstop>TrigSaveBtn</tabstop>
  </tabstops>
  <resources/>
  <connections/>
