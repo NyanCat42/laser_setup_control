@@ -10,13 +10,124 @@ from PyQt5.QtWidgets import *
 from avaspec import *
 import globals
 import form1
+import shutter_dialog
 import numpy as np
+import time
 from shutter import ShutterController, ShutterError
+from simulator import SpectrometerSimulator
 from datetime import datetime
 from pyqtgraph import PlotDataItem
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 
+
+class ShutterConfigDialog(QDialog, shutter_dialog.Ui_ShutterDialog):
+    """Shutter configuration dialog.
+
+    Drives the shared ShutterController directly so open/close state stays in
+    sync with the main window, and exposes a few diagnostics (latency, data
+    simulation toggle).
+    """
+
+    def __init__(self, shutter, parent=None):
+        super().__init__(parent)
+        self.setupUi(self)
+        self.shutter = shutter
+
+        self.ShutterOpen.clicked.connect(self.on_open)
+        self.ShutterClose.clicked.connect(self.on_close)
+        self.MeasureLatencyBtn.clicked.connect(self.on_measure_latency)
+        self.SimulateData.setChecked(getattr(globals, "simulate_data", False))
+        self.SimulateData.toggled.connect(self.on_simulate_toggled)
+
+    def _report(self, message):
+        parent = self.parent()
+        if parent is not None and hasattr(parent, "show_info_message"):
+            parent.show_info_message(message)
+
+    def _refresh_main_button(self):
+        parent = self.parent()
+        if parent is not None and hasattr(parent, "update_shutter_button_style"):
+            parent.update_shutter_button_style()
+
+    def on_open(self):
+        try:
+            self.shutter.open()
+        except ShutterError as e:
+            self._report(str(e))
+            return
+        except Exception as e:
+            self._report(f"Shutter error: {e}")
+            return
+        self._refresh_main_button()
+
+    def on_close(self):
+        try:
+            self.shutter.close()
+        except ShutterError as e:
+            self._report(str(e))
+            return
+        except Exception as e:
+            self._report(f"Shutter error: {e}")
+            return
+        self._refresh_main_button()
+
+    def _read_peak(self):
+        """Current peak signal level from the live (or simulated) spectrum.
+
+        In simulate mode the main window fills globals.spectraldata from the
+        SpectrometerSimulator, so the same read works for both sources.
+        """
+        data = getattr(globals, "spectraldata", None)
+        if data is None or len(data) == 0:
+            return 0.0
+        return float(np.max(data))
+
+    def on_measure_latency(self):
+        """Measure how long after a close command the light drops to 10%.
+
+        Records the starting peak level, closes the shutter, then polls the
+        signal (simulated or live) until it falls to 10% of that starting
+        value, reporting the elapsed time.
+        """
+        original = self._read_peak()
+        if original <= 0:
+            self.LatencyResultLabel.setText("-- ms")
+            self._report("No signal to measure latency against")
+            return
+        threshold = 0.1 * original
+
+        try:
+            self.shutter.close()
+        except ShutterError as e:
+            self.LatencyResultLabel.setText("-- ms")
+            self._report(str(e))
+            return
+        except Exception as e:
+            self.LatencyResultLabel.setText("-- ms")
+            self._report(f"Shutter error: {e}")
+            return
+
+        start = time.perf_counter()
+        self._refresh_main_button()
+
+        timeout = 5.0
+        elapsed_ms = None
+        while time.perf_counter() - start < timeout:
+            QApplication.processEvents()
+            if self._read_peak() <= threshold:
+                elapsed_ms = (time.perf_counter() - start) * 1000.0
+                break
+            time.sleep(0.002)
+
+        if elapsed_ms is None:
+            self.LatencyResultLabel.setText("timeout")
+            self._report("Latency measurement timed out")
+            return
+        self.LatencyResultLabel.setText(f"{elapsed_ms:.1f} ms")
+
+    def on_simulate_toggled(self, checked):
+        globals.simulate_data = checked
 
 
 class MainWindow(QMainWindow, form1.Ui_MainWindow):
@@ -28,6 +139,7 @@ class MainWindow(QMainWindow, form1.Ui_MainWindow):
         self.setWindowTitle("Spectra Explorer")
         self.create_title_bar()
         self.shutter = ShutterController()
+        self.simulator = SpectrometerSimulator()
         self.AvgPresetEdit.setValidator(QIntValidator(1, 32767, self))
         self.AvgPresetEdit.textChanged.connect(self.update_avg_preset_button_text)
         # on_Avg200StartBtn_clicked / on_ShutterBtn_clicked are auto-connected by
@@ -355,6 +467,12 @@ class MainWindow(QMainWindow, form1.Ui_MainWindow):
         except Exception as e:
             self.show_info_message(f"Shutter error: {e}")
             return
+        self.update_shutter_button_style()
+
+    @pyqtSlot()
+    def on_ShutterConfig_clicked(self):
+        dialog = ShutterConfigDialog(self.shutter, self)
+        dialog.exec_()
         self.update_shutter_button_style()
 
     def update_avg_preset_button_text(self):
@@ -784,8 +902,15 @@ class MainWindow(QMainWindow, form1.Ui_MainWindow):
     @pyqtSlot()
     def update_plot(self):
         # print(globals.NrScanned)
+        if globals.simulate_data:
+            # Feed the scope from the simulator: a 532 nm Gaussian that decays
+            # once the shutter closes. Mirrors what the real callback writes.
+            self.simulator.set_closed(self.shutter.is_closed)
+            globals.wavelength = self.simulator.wavelength
+            globals.pixels = self.simulator.pixels
+            globals.spectraldata = self.simulator.spectrum()
         self.plot.update_plot()
-        return        
+        return
 
     @pyqtSlot(int, int, int)
     def handle_newdata(self, param1, param2, generation):

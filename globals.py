@@ -9,3 +9,4 @@ NrScanned = 0
 savedark = False
 dark_ready = False
 dark_spectra = []
+simulate_data = False

@@ -14,7 +14,7 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
         MainWindow.setObjectName("MainWindow")
-        MainWindow.resize(1276, 1180)
+        MainWindow.resize(2119, 1180)
         sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Maximum, QtWidgets.QSizePolicy.Maximum)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
@@ -156,7 +156,7 @@ class Ui_MainWindow(object):
         self.TrigSaveBtn.setFont(font)
         self.TrigSaveBtn.setObjectName("TrigSaveBtn")
         self.plot = Plot(self.centralwidget)
-        self.plot.setGeometry(QtCore.QRect(280, 50, 1081, 821))
+        self.plot.setGeometry(QtCore.QRect(280, 50, 1361, 941))
         self.plot.setObjectName("plot")
         self.Avg200StartBtn = QtWidgets.QPushButton(self.centralwidget)
         self.Avg200StartBtn.setGeometry(QtCore.QRect(30, 820, 221, 51))
@@ -167,6 +167,12 @@ class Ui_MainWindow(object):
         self.ShutterBtn = QtWidgets.QPushButton(self.centralwidget)
         self.ShutterBtn.setGeometry(QtCore.QRect(30, 940, 221, 51))
         self.ShutterBtn.setObjectName("ShutterBtn")
+        self.ShutterConfig = QtWidgets.QPushButton(self.centralwidget)
+        self.ShutterConfig.setGeometry(QtCore.QRect(1670, 50, 221, 41))
+        font = QtGui.QFont()
+        font.setPointSize(10)
+        self.ShutterConfig.setFont(font)
+        self.ShutterConfig.setObjectName("ShutterConfig")
         MainWindow.setCentralWidget(self.centralwidget)
 
         self.retranslateUi(MainWindow)
@@ -197,4 +203,5 @@ class Ui_MainWindow(object):
         self.Avg200StartBtn.setText(_translate("MainWindow", "200 Avg Start"))
         self.AvgPresetEdit.setText(_translate("MainWindow", "200"))
         self.ShutterBtn.setText(_translate("MainWindow", "Shutter Closed"))
+        self.ShutterConfig.setText(_translate("MainWindow", "Shutter Configuration"))
 from plot import Plot

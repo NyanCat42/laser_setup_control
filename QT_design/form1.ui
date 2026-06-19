@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1276</width>
+    <width>2119</width>
     <height>1180</height>
    </rect>
   </property>
@@ -329,8 +329,8 @@ QPushButton:hover {
      <rect>
       <x>280</x>
       <y>50</y>
-      <width>1081</width>
-      <height>821</height>
+      <width>1361</width>
+      <height>941</height>
      </rect>
     </property>
    </widget>
@@ -371,6 +371,24 @@ QPushButton:hover {
     </property>
     <property name="text">
      <string>Shutter Closed</string>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="ShutterConfig">
+    <property name="geometry">
+     <rect>
+      <x>1670</x>
+      <y>50</y>
+      <width>221</width>
+      <height>41</height>
+     </rect>
+    </property>
+    <property name="font">
+     <font>
+      <pointsize>10</pointsize>
+     </font>
+    </property>
+    <property name="text">
+     <string>Shutter Configuration</string>
     </property>
    </widget>
   </widget>
