@@ -10,7 +10,6 @@ from PyQt5.QtWidgets import *
 from avaspec import *
 import globals
 import form1
-import shutter_dialog
 import numpy as np
 import time
 from shutter import (
@@ -24,163 +23,6 @@ from datetime import datetime
 from pyqtgraph import PlotDataItem
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-
-
-class ShutterConfigDialog(QDialog, shutter_dialog.Ui_ShutterDialog):
-    """Shutter configuration dialog.
-
-    Drives the shared ShutterController directly so open/close state stays in
-    sync with the main window, and exposes a few diagnostics (latency, data
-    simulation toggle).
-    """
-
-    def __init__(self, shutter, rotation, parent=None):
-        super().__init__(parent)
-        self.setupUi(self)
-        self.shutter = shutter
-        self.rotation = rotation
-
-        self.RotationTarget.setValidator(QDoubleValidator(self))
-
-        self.InitShutter.clicked.connect(self.on_init_shutter)
-        self.InitRotation.clicked.connect(self.on_init_rotation)
-        self.ShutterOpen.clicked.connect(self.on_open)
-        self.ShutterClose.clicked.connect(self.on_close)
-        self.MoveRotation.clicked.connect(self.on_move_rotation)
-        self.MeasureLatencyBtn.clicked.connect(self.on_measure_latency)
-        self.SimulateData.setChecked(getattr(globals, "simulate_data", False))
-        self.SimulateData.toggled.connect(self.on_simulate_toggled)
-
-        self._refresh_status()
-
-    def _report(self, message):
-        parent = self.parent()
-        if parent is not None and hasattr(parent, "show_info_message"):
-            parent.show_info_message(message)
-
-    def _refresh_main_button(self):
-        parent = self.parent()
-        if parent is not None and hasattr(parent, "update_shutter_button_style"):
-            parent.update_shutter_button_style()
-
-    def _refresh_status(self):
-        self.ShutterStatus.setText(self.shutter.status_text())
-        self.RotationStatus.setText(self.rotation.status_text())
-
-    def on_init_shutter(self):
-        try:
-            self.shutter.initialize()
-        except ShutterError as e:
-            self._report(str(e))
-        except Exception as e:
-            self._report(f"Shutter error: {e}")
-        self._refresh_status()
-        self._refresh_main_button()
-
-    def on_init_rotation(self):
-        try:
-            self.rotation.initialize()
-        except RotationError as e:
-            self._report(str(e))
-        except Exception as e:
-            self._report(f"Rotation error: {e}")
-        self._refresh_status()
-
-    def on_move_rotation(self):
-        text = self.RotationTarget.text().strip()
-        try:
-            target = float(text)
-        except ValueError:
-            self._report("Enter a rotation target in degrees")
-            return
-        try:
-            self.rotation.move_to(target)
-        except RotationError as e:
-            self._report(str(e))
-        except Exception as e:
-            self._report(f"Rotation error: {e}")
-        self._refresh_status()
-
-    def on_open(self):
-        try:
-            self.shutter.open()
-        except ShutterError as e:
-            self._report(str(e))
-            return
-        except Exception as e:
-            self._report(f"Shutter error: {e}")
-            return
-        self._refresh_main_button()
-        self._refresh_status()
-
-    def on_close(self):
-        try:
-            self.shutter.close()
-        except ShutterError as e:
-            self._report(str(e))
-            return
-        except Exception as e:
-            self._report(f"Shutter error: {e}")
-            return
-        self._refresh_main_button()
-        self._refresh_status()
-
-    def _read_peak(self):
-        """Current peak signal level from the live (or simulated) spectrum.
-
-        In simulate mode the main window fills globals.spectraldata from the
-        SpectrometerSimulator, so the same read works for both sources.
-        """
-        data = getattr(globals, "spectraldata", None)
-        if data is None or len(data) == 0:
-            return 0.0
-        return float(np.max(data))
-
-    def on_measure_latency(self):
-        """Measure how long after a close command the light drops to 10%.
-
-        Records the starting peak level, closes the shutter, then polls the
-        signal (simulated or live) until it falls to 10% of that starting
-        value, reporting the elapsed time.
-        """
-        original = self._read_peak()
-        if original <= 0:
-            self.LatencyResultLabel.setText("-- ms")
-            self._report("No signal to measure latency against")
-            return
-        threshold = 0.1 * original
-
-        try:
-            self.shutter.close()
-        except ShutterError as e:
-            self.LatencyResultLabel.setText("-- ms")
-            self._report(str(e))
-            return
-        except Exception as e:
-            self.LatencyResultLabel.setText("-- ms")
-            self._report(f"Shutter error: {e}")
-            return
-
-        start = time.perf_counter()
-        self._refresh_main_button()
-
-        timeout = 5.0
-        elapsed_ms = None
-        while time.perf_counter() - start < timeout:
-            QApplication.processEvents()
-            if self._read_peak() <= threshold:
-                elapsed_ms = (time.perf_counter() - start) * 1000.0
-                break
-            time.sleep(0.002)
-
-        if elapsed_ms is None:
-            self.LatencyResultLabel.setText("timeout")
-            self._report("Latency measurement timed out")
-            return
-        self.LatencyResultLabel.setText(f"{elapsed_ms:.1f} ms")
-
-    def on_simulate_toggled(self, checked):
-        globals.simulate_data = checked
 
 
 class MainWindow(QMainWindow, form1.Ui_MainWindow):
@@ -200,6 +42,14 @@ class MainWindow(QMainWindow, form1.Ui_MainWindow):
         # connectSlotsByName() in setupUi() — connecting them again here would fire
         # the slot twice per click (toggle() would open then immediately close).
         self.update_shutter_button_style()
+
+        self.RotationTarget.setValidator(QDoubleValidator(self))
+        self.InitShutter.clicked.connect(self.on_init_shutter)
+        self.InitRotation.clicked.connect(self.on_init_rotation)
+        self.MoveRotation.clicked.connect(self.on_move_rotation)
+        self.MeasureLatencyBtn.clicked.connect(self.on_measure_latency)
+        self.SimulateData.setChecked(getattr(globals, "simulate_data", False))
+        self.SimulateData.toggled.connect(self.on_simulate_toggled)
         self.showMaximized()
 
         # Initialize UI fields
@@ -528,11 +378,82 @@ class MainWindow(QMainWindow, form1.Ui_MainWindow):
             return
         self.update_shutter_button_style()
 
-    @pyqtSlot()
-    def on_ShutterConfig_clicked(self):
-        dialog = ShutterConfigDialog(self.shutter, self.rotation, self)
-        dialog.exec_()
+    def on_init_shutter(self):
+        try:
+            self.shutter.initialize()
+        except ShutterError as e:
+            self.show_info_message(str(e))
+        except Exception as e:
+            self.show_info_message(f"Shutter error: {e}")
         self.update_shutter_button_style()
+
+    def on_init_rotation(self):
+        try:
+            self.rotation.initialize()
+        except RotationError as e:
+            self.show_info_message(str(e))
+        except Exception as e:
+            self.show_info_message(f"Rotation error: {e}")
+
+    def on_move_rotation(self):
+        text = self.RotationTarget.text().strip()
+        try:
+            target = float(text)
+        except ValueError:
+            self.show_info_message("Enter a rotation target in degrees")
+            return
+        try:
+            self.rotation.move_to(target)
+        except RotationError as e:
+            self.show_info_message(str(e))
+        except Exception as e:
+            self.show_info_message(f"Rotation error: {e}")
+
+    def _read_peak(self):
+        data = getattr(globals, "spectraldata", None)
+        if data is None or len(data) == 0:
+            return 0.0
+        return float(np.max(data))
+
+    def on_measure_latency(self):
+        original = self._read_peak()
+        if original <= 0:
+            self.LatencyResultLabel.setText("-- ms")
+            self.show_info_message("No signal to measure latency against")
+            return
+        threshold = 0.1 * original
+
+        try:
+            self.shutter.close()
+        except ShutterError as e:
+            self.LatencyResultLabel.setText("-- ms")
+            self.show_info_message(str(e))
+            return
+        except Exception as e:
+            self.LatencyResultLabel.setText("-- ms")
+            self.show_info_message(f"Shutter error: {e}")
+            return
+
+        start = time.perf_counter()
+        self.update_shutter_button_style()
+
+        timeout = 5.0
+        elapsed_ms = None
+        while time.perf_counter() - start < timeout:
+            QApplication.processEvents()
+            if self._read_peak() <= threshold:
+                elapsed_ms = (time.perf_counter() - start) * 1000.0
+                break
+            time.sleep(0.002)
+
+        if elapsed_ms is None:
+            self.LatencyResultLabel.setText("timeout")
+            self.show_info_message("Latency measurement timed out")
+            return
+        self.LatencyResultLabel.setText(f"{elapsed_ms:.1f} ms")
+
+    def on_simulate_toggled(self, checked):
+        globals.simulate_data = checked
 
     def update_avg_preset_button_text(self):
         averages = self.get_avg_preset_value(show_error=False)
