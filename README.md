@@ -11,5 +11,6 @@ Run with `python spectrometer_program.pyw`
 `pip install`:
 
 - `PyQT5`
+- `pyqtgraph`
 - `libximc` (for standa controller)
-- avaspec library (but works without for now as I've yet to figure it out on linux)
+- avaspec library (avaspecx64.dll for windows included, linux and mac support posible, but needs seperate drivers)

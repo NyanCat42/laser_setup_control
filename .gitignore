@@ -1,0 +1,7 @@
+# Python bytecode / caches
+__pycache__/
+*.py[cod]
+
+# Claude / personal project notes
+CLAUDE.md
+how_it_should_work.md
