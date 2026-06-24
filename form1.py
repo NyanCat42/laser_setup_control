@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Form implementation generated from reading ui file 'QT_design/form1.ui'
+# Form implementation generated from reading ui file 'c:\Users\laurynas\Documents\institute_photonics_nanotechnology\laser_setup_control\QT_design\form1.ui'
 #
 # Created by: PyQt5 UI code generator 5.15.11
 #
@@ -19,6 +19,7 @@ class Ui_MainWindow(object):
         sizePolicy.setVerticalStretch(0)
         sizePolicy.setHeightForWidth(MainWindow.sizePolicy().hasHeightForWidth())
         MainWindow.setSizePolicy(sizePolicy)
+        MainWindow.setAutoFillBackground(True)
         MainWindow.setStyleSheet("QMainWindow {\n"
 "    background-color: rgb(40, 43, 48);\n"
 "    color: rgb(153, 170, 181);\n"
@@ -56,7 +57,7 @@ class Ui_MainWindow(object):
 "    padding: 0 3px;\n"
 "}\n"
 "\n"
-"QLabel {\n"
+"QLabel, QCheckBox {\n"
 "    color: rgb(153, 170, 181);\n"
 "}\n"
 "")
@@ -155,7 +156,7 @@ class Ui_MainWindow(object):
         self.TrigSaveBtn.setFont(font)
         self.TrigSaveBtn.setObjectName("TrigSaveBtn")
         self.plot = Plot(self.centralwidget)
-        self.plot.setGeometry(QtCore.QRect(280, 50, 1361, 941))
+        self.plot.setGeometry(QtCore.QRect(280, 50, 1361, 1001))
         self.plot.setObjectName("plot")
         self.Avg200StartBtn = QtWidgets.QPushButton(self.centralwidget)
         self.Avg200StartBtn.setGeometry(QtCore.QRect(30, 820, 221, 51))
@@ -193,10 +194,11 @@ class Ui_MainWindow(object):
         self.label_10 = QtWidgets.QLabel(self.groupBox_2)
         self.label_10.setGeometry(QtCore.QRect(10, 350, 201, 16))
         self.label_10.setObjectName("label_10")
-        self.checkBox = QtWidgets.QCheckBox(self.groupBox_2)
-        self.checkBox.setGeometry(QtCore.QRect(20, 400, 191, 17))
-        self.checkBox.setAcceptDrops(False)
-        self.checkBox.setObjectName("checkBox")
+        self.EnableShutterLogic = QtWidgets.QCheckBox(self.groupBox_2)
+        self.EnableShutterLogic.setGeometry(QtCore.QRect(20, 400, 191, 17))
+        self.EnableShutterLogic.setAcceptDrops(False)
+        self.EnableShutterLogic.setAutoFillBackground(False)
+        self.EnableShutterLogic.setObjectName("EnableShutterLogic")
         self.label_11 = QtWidgets.QLabel(self.groupBox_2)
         self.label_11.setGeometry(QtCore.QRect(10, 370, 201, 16))
         self.label_11.setObjectName("label_11")
@@ -245,24 +247,24 @@ class Ui_MainWindow(object):
         self.label_12 = QtWidgets.QLabel(self.groupBox_3)
         self.label_12.setGeometry(QtCore.QRect(10, 180, 171, 16))
         self.label_12.setObjectName("label_12")
-        self.lineEdit = QtWidgets.QLineEdit(self.groupBox_3)
-        self.lineEdit.setGeometry(QtCore.QRect(20, 210, 171, 31))
-        self.lineEdit.setObjectName("lineEdit")
+        self.RotationTargetWavelength = QtWidgets.QLineEdit(self.groupBox_3)
+        self.RotationTargetWavelength.setGeometry(QtCore.QRect(20, 210, 171, 31))
+        self.RotationTargetWavelength.setObjectName("RotationTargetWavelength")
         self.label_16 = QtWidgets.QLabel(self.groupBox_3)
         self.label_16.setGeometry(QtCore.QRect(10, 250, 171, 16))
         self.label_16.setObjectName("label_16")
-        self.lineEdit_3 = QtWidgets.QLineEdit(self.groupBox_3)
-        self.lineEdit_3.setGeometry(QtCore.QRect(20, 280, 171, 31))
-        self.lineEdit_3.setObjectName("lineEdit_3")
+        self.RotationTargetPower = QtWidgets.QLineEdit(self.groupBox_3)
+        self.RotationTargetPower.setGeometry(QtCore.QRect(20, 280, 171, 31))
+        self.RotationTargetPower.setObjectName("RotationTargetPower")
         self.label_17 = QtWidgets.QLabel(self.groupBox_3)
         self.label_17.setGeometry(QtCore.QRect(10, 320, 181, 16))
         self.label_17.setObjectName("label_17")
-        self.checkBox_2 = QtWidgets.QCheckBox(self.groupBox_3)
-        self.checkBox_2.setGeometry(QtCore.QRect(20, 350, 171, 17))
-        self.checkBox_2.setObjectName("checkBox_2")
-        self.checkBox_3 = QtWidgets.QCheckBox(self.groupBox_3)
-        self.checkBox_3.setGeometry(QtCore.QRect(20, 430, 191, 17))
-        self.checkBox_3.setObjectName("checkBox_3")
+        self.ReverseRotation = QtWidgets.QCheckBox(self.groupBox_3)
+        self.ReverseRotation.setGeometry(QtCore.QRect(20, 350, 171, 17))
+        self.ReverseRotation.setObjectName("ReverseRotation")
+        self.EnableRotationLogic = QtWidgets.QCheckBox(self.groupBox_3)
+        self.EnableRotationLogic.setGeometry(QtCore.QRect(20, 430, 191, 17))
+        self.EnableRotationLogic.setObjectName("EnableRotationLogic")
         self.label_18 = QtWidgets.QLabel(self.groupBox_3)
         self.label_18.setGeometry(QtCore.QRect(10, 380, 201, 16))
         self.label_18.setObjectName("label_18")
@@ -311,7 +313,7 @@ class Ui_MainWindow(object):
         self.MeasureLatencyBtn.setText(_translate("MainWindow", "Measure delay"))
         self.LatencyResultLabel.setText(_translate("MainWindow", "-- ms"))
         self.label_10.setText(_translate("MainWindow", "Enable logic (when measurement started"))
-        self.checkBox.setText(_translate("MainWindow", "Enable shutter logic"))
+        self.EnableShutterLogic.setText(_translate("MainWindow", "Enable shutter logic"))
         self.label_11.setText(_translate("MainWindow", "close shutter and measure after delay"))
         self.label_9.setText(_translate("MainWindow", "Delay will be measured when counts"))
         self.label_20.setText(_translate("MainWindow", "at [wavelength] drop to [percentage]"))
@@ -327,24 +329,14 @@ class Ui_MainWindow(object):
         self.InitRotation.setText(_translate("MainWindow", "Initialise rotation stage"))
         self.label_13.setText(_translate("MainWindow", "Manual control"))
         self.MoveRotation.setText(_translate("MainWindow", "Move to (deg):"))
-        self.label_12.setText(_translate("MainWindow", "Target frequency (nm)"))
-        self.lineEdit.setText(_translate("MainWindow", "1064"))
+        self.label_12.setText(_translate("MainWindow", "Target wavelength (nm)"))
+        self.RotationTargetWavelength.setText(_translate("MainWindow", "1064"))
         self.label_16.setText(_translate("MainWindow", "Target power (counts)"))
-        self.lineEdit_3.setText(_translate("MainWindow", "10000"))
+        self.RotationTargetPower.setText(_translate("MainWindow", "10000"))
         self.label_17.setText(_translate("MainWindow", "Reverse rotation direction"))
-        self.checkBox_2.setText(_translate("MainWindow", "not reversed"))
-        self.checkBox_3.setText(_translate("MainWindow", "Enable rotation stage logic"))
+        self.ReverseRotation.setText(_translate("MainWindow", "Reverse"))
+        self.EnableRotationLogic.setText(_translate("MainWindow", "Enable rotation stage logic"))
         self.label_18.setText(_translate("MainWindow", "Enable logic (rotates ND filter to maintain"))
         self.label_19.setText(_translate("MainWindow", "set power at set frequency)"))
         self.SimulateData.setText(_translate("MainWindow", "Simulate spectrometer data (for debug)"))
 from plot import Plot
-
-
-if __name__ == "__main__":
-    import sys
-    app = QtWidgets.QApplication(sys.argv)
-    MainWindow = QtWidgets.QMainWindow()
-    ui = Ui_MainWindow()
-    ui.setupUi(MainWindow)
-    MainWindow.show()
-    sys.exit(app.exec_())

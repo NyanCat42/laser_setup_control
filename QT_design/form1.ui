@@ -11,6 +11,9 @@
   <property name="windowTitle">
    <string>MainWindow</string>
   </property>
+  <property name="autoFillBackground">
+   <bool>true</bool>
+  </property>
   <property name="styleSheet">
    <string notr="true">QMainWindow {
     background-color: rgb(40, 43, 48);
@@ -49,7 +52,7 @@ QGroupBox::title {
     padding: 0 3px;
 }
 
-QLabel {
+QLabel, QCheckBox {
     color: rgb(153, 170, 181);
 }
 </string>
@@ -322,7 +325,7 @@ QPushButton:hover {
       <x>280</x>
       <y>50</y>
       <width>1361</width>
-      <height>941</height>
+      <height>1001</height>
      </rect>
     </property>
    </widget>
@@ -481,7 +484,7 @@ QPushButton:hover {
       <string>Enable logic (when measurement started</string>
      </property>
     </widget>
-    <widget class="QCheckBox" name="checkBox">
+    <widget class="QCheckBox" name="EnableShutterLogic">
      <property name="geometry">
       <rect>
        <x>20</x>
@@ -491,6 +494,9 @@ QPushButton:hover {
       </rect>
      </property>
      <property name="acceptDrops">
+      <bool>false</bool>
+     </property>
+     <property name="autoFillBackground">
       <bool>false</bool>
      </property>
      <property name="text">
@@ -702,10 +708,10 @@ QPushButton:hover {
       </rect>
      </property>
      <property name="text">
-      <string>Target frequency (nm)</string>
+      <string>Target wavelength (nm)</string>
      </property>
     </widget>
-    <widget class="QLineEdit" name="lineEdit">
+    <widget class="QLineEdit" name="RotationTargetWavelength">
      <property name="geometry">
       <rect>
        <x>20</x>
@@ -731,7 +737,7 @@ QPushButton:hover {
       <string>Target power (counts)</string>
      </property>
     </widget>
-    <widget class="QLineEdit" name="lineEdit_3">
+    <widget class="QLineEdit" name="RotationTargetPower">
      <property name="geometry">
       <rect>
        <x>20</x>
@@ -757,7 +763,7 @@ QPushButton:hover {
       <string>Reverse rotation direction</string>
      </property>
     </widget>
-    <widget class="QCheckBox" name="checkBox_2">
+    <widget class="QCheckBox" name="ReverseRotation">
      <property name="geometry">
       <rect>
        <x>20</x>
@@ -767,10 +773,10 @@ QPushButton:hover {
       </rect>
      </property>
      <property name="text">
-      <string>not reversed</string>
+      <string>Reverse</string>
      </property>
     </widget>
-    <widget class="QCheckBox" name="checkBox_3">
+    <widget class="QCheckBox" name="EnableRotationLogic">
      <property name="geometry">
       <rect>
        <x>20</x>
