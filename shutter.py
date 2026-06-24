@@ -16,6 +16,7 @@ handle that the high-level :class:`~libximc.highlevel.Axis` opened.
 
 import os
 import sys
+import time
 
 import libximc.highlevel as ximc
 import libximc.lowlevel as _ll
@@ -259,8 +260,30 @@ class _StandaAxis:
         self.connect()
         self._apply_profile()
         self._axis.command_home()
-        self._axis.command_wait_for_stop(10)
+        self._wait_for_stop(timeout_s=30.0, action="homing")
         self._initialized = True
+
+    def _wait_for_stop(self, timeout_s=15.0, poll_ms=10, action="move"):
+        """Block until the axis stops, but give up after ``timeout_s`` so a
+        stalled home/move can't hang the whole application forever.
+
+        ``libximc``'s own ``command_wait_for_stop(refresh_ms)`` polls the same
+        MVCMD_RUNNING flag but never times out, so a stage that never reaches its
+        target (failed homing, obstruction, missing limit) freezes the caller
+        indefinitely. We poll with a wall-clock deadline instead and raise on
+        timeout, which the GUI already catches and reports.
+        """
+        deadline = time.perf_counter() + timeout_s
+        while time.perf_counter() < deadline:
+            # Sleep first so the controller has registered the command before the
+            # first status read (avoids a premature "already stopped" reading).
+            time.sleep(poll_ms / 1000.0)
+            if not (self._axis.get_status().MvCmdSts & ximc.MvcmdStatus.MVCMD_RUNNING):
+                return
+        raise self._error_cls(
+            f"{self._name} {action} timed out after {timeout_s:g} s - the stage "
+            f"did not stop. Check it is free to move and powered, then retry."
+        )
 
     def _pre_profile(self):
         """Put the controller into the right engine type before the profile."""
@@ -389,7 +412,7 @@ class RotationController(_StandaAxis):
     def move_to(self, degrees):
         self._require_initialized()
         self._axis.command_move_calb(float(degrees))
-        self._axis.command_wait_for_stop(10)
+        self._wait_for_stop(timeout_s=15.0, action="move")
 
     def get_angle(self):
         self._require_initialized()

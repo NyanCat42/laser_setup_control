@@ -44,6 +44,11 @@ class MainWindow(QMainWindow, form1.Ui_MainWindow):
         self.update_shutter_button_style()
 
         self.RotationTarget.setValidator(QDoubleValidator(self))
+        self.RotationStep.setValidator(QDoubleValidator(self))
+        self.RotationLoopFrequency.setValidator(QDoubleValidator(self))
+        self.RotationTargetWavelength.setValidator(QDoubleValidator(self))
+        self.RotationTargetIntensity.setValidator(QDoubleValidator(self))
+        self.RotationLoopDeadband.setValidator(QDoubleValidator(self))
         self.LatencyWavelength.setValidator(QDoubleValidator(self))
         self.LatencyPercentage.setValidator(QDoubleValidator(0.0, 100.0, 1, self))
         self.InitShutter.clicked.connect(self.on_init_shutter)
@@ -60,6 +65,8 @@ class MainWindow(QMainWindow, form1.Ui_MainWindow):
         self.NumAvgEdt.setText("1")
         self.NumTrigMeasEdt.setText("1000")
         self.NumTrigSelEdt.setText("10")
+        self.RotationStep.setText("0.5")
+        self.RotationLoopFrequency.setText("2")
         self.last_save_path = None
         self.last_save_averaging = 1
         self.top_plots = []  # List to hold top 10 plots and their values
@@ -77,6 +84,7 @@ class MainWindow(QMainWindow, form1.Ui_MainWindow):
         self.measurement_generation = 0
         self.active_generation = 0
         self.shutter_latency_ms = None
+        self._last_rotation_correction = 0.0
         self._drag_pos = None
         
         self.timer = QTimer(self)
@@ -427,6 +435,60 @@ class MainWindow(QMainWindow, form1.Ui_MainWindow):
         if lo >= hi:
             return float(np.max(data))
         return float(np.max(data[lo:hi]))
+
+    def _run_rotation_logic(self):
+        """Bang-bang feedback: nudge the rotation stage (ND filter) to hold the intensity
+        at RotationTargetWavelength near RotationTargetIntensity. Runs off the plot timer;
+        the RotationLoopFrequency field throttles how often a correction actually fires."""
+        if not self.EnableRotationLogic.isChecked():
+            return
+        # No-op until the stage is homed/initialised (also covers simulate/demo mode).
+        if not getattr(self.rotation, "_initialized", False):
+            return
+
+        try:
+            freq = float(self.RotationLoopFrequency.text())
+        except ValueError:
+            return
+        if freq <= 0:
+            return
+        if time.perf_counter() - self._last_rotation_correction < 1.0 / freq:
+            return
+
+        try:
+            target_nm = float(self.RotationTargetWavelength.text())
+            target_intensity = float(self.RotationTargetIntensity.text())
+            step = float(self.RotationStep.text())
+            deadband = float(self.RotationLoopDeadband.text())
+        except ValueError:
+            return
+
+        current = self._read_peak_at_wavelength(target_nm)
+        if current <= 0:
+            return
+
+        if current < target_intensity - deadband:
+            sign = 1   # too dim
+        elif current > target_intensity + deadband:
+            sign = -1  # too bright
+        else:
+            return     # within deadband — hold
+        if self.ReverseRotation.isChecked():
+            sign = -sign
+
+        try:
+            new_angle = self.rotation.get_angle() + sign * step
+            self.rotation.move_to(new_angle)
+        except RotationError as e:
+            self.EnableRotationLogic.setChecked(False)
+            self.show_info_message(str(e))
+            return
+        except Exception as e:
+            self.EnableRotationLogic.setChecked(False)
+            self.show_info_message(f"Rotation error: {e}")
+            return
+
+        self._last_rotation_correction = time.perf_counter()
 
     def on_measure_latency(self):
         try:
@@ -948,6 +1010,7 @@ class MainWindow(QMainWindow, form1.Ui_MainWindow):
             globals.pixels = self.simulator.pixels
             globals.spectraldata = self.simulator.spectrum()
         self.plot.update_plot()
+        self._run_rotation_logic()
         return
 
     @pyqtSlot(int, int, int)
