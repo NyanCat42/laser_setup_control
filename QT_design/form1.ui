@@ -358,7 +358,7 @@ QPushButton:hover {
       <x>1670</x>
       <y>50</y>
       <width>221</width>
-      <height>331</height>
+      <height>431</height>
      </rect>
     </property>
     <property name="title">
@@ -446,7 +446,7 @@ QPushButton:hover {
      <property name="geometry">
       <rect>
        <x>20</x>
-       <y>208</y>
+       <y>308</y>
        <width>81</width>
        <height>31</height>
       </rect>
@@ -459,7 +459,7 @@ QPushButton:hover {
      <property name="geometry">
       <rect>
        <x>120</x>
-       <y>210</y>
+       <y>310</y>
        <width>71</width>
        <height>31</height>
       </rect>
@@ -472,23 +472,26 @@ QPushButton:hover {
      <property name="geometry">
       <rect>
        <x>10</x>
-       <y>250</y>
-       <width>191</width>
+       <y>350</y>
+       <width>201</width>
        <height>16</height>
       </rect>
      </property>
      <property name="text">
-      <string>Enable shutter logic (close shutter and</string>
+      <string>Enable logic (when measurement started</string>
      </property>
     </widget>
     <widget class="QCheckBox" name="checkBox">
      <property name="geometry">
       <rect>
        <x>20</x>
-       <y>300</y>
+       <y>400</y>
        <width>191</width>
        <height>17</height>
       </rect>
+     </property>
+     <property name="acceptDrops">
+      <bool>false</bool>
      </property>
      <property name="text">
       <string>Enable shutter logic</string>
@@ -498,13 +501,104 @@ QPushButton:hover {
      <property name="geometry">
       <rect>
        <x>10</x>
-       <y>270</y>
+       <y>370</y>
        <width>201</width>
        <height>16</height>
       </rect>
      </property>
      <property name="text">
-      <string>start measurement after shutter delay)</string>
+      <string>close shutter and measure after delay</string>
+     </property>
+    </widget>
+    <widget class="QLabel" name="label_9">
+     <property name="geometry">
+      <rect>
+       <x>20</x>
+       <y>200</y>
+       <width>181</width>
+       <height>16</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>Delay will be measured when counts</string>
+     </property>
+    </widget>
+    <widget class="QLabel" name="label_20">
+     <property name="geometry">
+      <rect>
+       <x>20</x>
+       <y>220</y>
+       <width>181</width>
+       <height>16</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>at [wavelength] drop to [percentage]</string>
+     </property>
+    </widget>
+    <widget class="QLabel" name="label_21">
+     <property name="geometry">
+      <rect>
+       <x>20</x>
+       <y>240</y>
+       <width>181</width>
+       <height>16</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>of counts when button was pressed.</string>
+     </property>
+    </widget>
+    <widget class="QLineEdit" name="LatencyWavelength">
+     <property name="geometry">
+      <rect>
+       <x>20</x>
+       <y>270</y>
+       <width>51</width>
+       <height>31</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>532</string>
+     </property>
+    </widget>
+    <widget class="QLineEdit" name="LatencyPercentage">
+     <property name="geometry">
+      <rect>
+       <x>120</x>
+       <y>270</y>
+       <width>51</width>
+       <height>31</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>10</string>
+     </property>
+    </widget>
+    <widget class="QLabel" name="label_22">
+     <property name="geometry">
+      <rect>
+       <x>80</x>
+       <y>280</y>
+       <width>21</width>
+       <height>16</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>nm</string>
+     </property>
+    </widget>
+    <widget class="QLabel" name="label_23">
+     <property name="geometry">
+      <rect>
+       <x>180</x>
+       <y>280</y>
+       <width>21</width>
+       <height>16</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>%</string>
      </property>
     </widget>
    </widget>
@@ -512,7 +606,7 @@ QPushButton:hover {
     <property name="geometry">
      <rect>
       <x>1670</x>
-      <y>400</y>
+      <y>490</y>
       <width>221</width>
       <height>461</height>
      </rect>
@@ -720,7 +814,7 @@ QPushButton:hover {
     <property name="geometry">
      <rect>
       <x>1670</x>
-      <y>880</y>
+      <y>970</y>
       <width>231</width>
       <height>21</height>
      </rect>

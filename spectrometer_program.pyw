@@ -44,6 +44,8 @@ class MainWindow(QMainWindow, form1.Ui_MainWindow):
         self.update_shutter_button_style()
 
         self.RotationTarget.setValidator(QDoubleValidator(self))
+        self.LatencyWavelength.setValidator(QDoubleValidator(self))
+        self.LatencyPercentage.setValidator(QDoubleValidator(0.0, 100.0, 1, self))
         self.InitShutter.clicked.connect(self.on_init_shutter)
         self.InitRotation.clicked.connect(self.on_init_rotation)
         self.MoveRotation.clicked.connect(self.on_move_rotation)
@@ -409,19 +411,42 @@ class MainWindow(QMainWindow, form1.Ui_MainWindow):
         except Exception as e:
             self.show_info_message(f"Rotation error: {e}")
 
-    def _read_peak(self):
+    def _read_peak_at_wavelength(self, target_nm, window_nm=5.0):
+        """Peak counts within ±window_nm of target_nm, or full-spectrum max if wavelength data is unavailable."""
         data = getattr(globals, "spectraldata", None)
+        wl = getattr(globals, "wavelength", None)
         if data is None or len(data) == 0:
             return 0.0
-        return float(np.max(data))
+        if wl is None or len(wl) == 0:
+            return float(np.max(data))
+        lo = np.searchsorted(wl, target_nm - window_nm, side="left")
+        hi = np.searchsorted(wl, target_nm + window_nm, side="right")
+        lo = max(0, lo)
+        hi = min(len(data), hi)
+        if lo >= hi:
+            return float(np.max(data))
+        return float(np.max(data[lo:hi]))
 
     def on_measure_latency(self):
-        original = self._read_peak()
+        try:
+            target_nm = float(self.LatencyWavelength.text())
+        except ValueError:
+            self.show_info_message("Enter a valid wavelength for latency measurement")
+            return
+        try:
+            pct = float(self.LatencyPercentage.text())
+            if not (0.0 < pct < 100.0):
+                raise ValueError
+        except ValueError:
+            self.show_info_message("Enter a drop percentage between 0 and 100")
+            return
+
+        original = self._read_peak_at_wavelength(target_nm)
         if original <= 0:
             self.LatencyResultLabel.setText("-- ms")
             self.show_info_message("No signal to measure latency against")
             return
-        threshold = 0.1 * original
+        threshold = (pct / 100.0) * original
 
         try:
             self.shutter.close()
@@ -441,7 +466,7 @@ class MainWindow(QMainWindow, form1.Ui_MainWindow):
         elapsed_ms = None
         while time.perf_counter() - start < timeout:
             QApplication.processEvents()
-            if self._read_peak() <= threshold:
+            if self._read_peak_at_wavelength(target_nm) <= threshold:
                 elapsed_ms = (time.perf_counter() - start) * 1000.0
                 break
             time.sleep(0.002)
