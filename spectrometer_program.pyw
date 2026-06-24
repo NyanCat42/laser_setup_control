@@ -76,6 +76,7 @@ class MainWindow(QMainWindow, form1.Ui_MainWindow):
         self.trigger_max_idx = 0
         self.measurement_generation = 0
         self.active_generation = 0
+        self.shutter_latency_ms = None
         self._drag_pos = None
         
         self.timer = QTimer(self)
@@ -443,6 +444,7 @@ class MainWindow(QMainWindow, form1.Ui_MainWindow):
 
         original = self._read_peak_at_wavelength(target_nm)
         if original <= 0:
+            self.shutter_latency_ms = None
             self.LatencyResultLabel.setText("-- ms")
             self.show_info_message("No signal to measure latency against")
             return
@@ -451,10 +453,12 @@ class MainWindow(QMainWindow, form1.Ui_MainWindow):
         try:
             self.shutter.close()
         except ShutterError as e:
+            self.shutter_latency_ms = None
             self.LatencyResultLabel.setText("-- ms")
             self.show_info_message(str(e))
             return
         except Exception as e:
+            self.shutter_latency_ms = None
             self.LatencyResultLabel.setText("-- ms")
             self.show_info_message(f"Shutter error: {e}")
             return
@@ -472,9 +476,11 @@ class MainWindow(QMainWindow, form1.Ui_MainWindow):
             time.sleep(0.002)
 
         if elapsed_ms is None:
+            self.shutter_latency_ms = None
             self.LatencyResultLabel.setText("timeout")
             self.show_info_message("Latency measurement timed out")
             return
+        self.shutter_latency_ms = elapsed_ms
         self.LatencyResultLabel.setText(f"{elapsed_ms:.1f} ms")
 
     def on_simulate_toggled(self, checked):
@@ -797,7 +803,7 @@ class MainWindow(QMainWindow, form1.Ui_MainWindow):
             return
 
         integration_time, averages, nummeas, numsel = params
-        self.start_trigger_measurement(integration_time, averages, nummeas, numsel)
+        self.start_trigger_with_shutter_logic(integration_time, averages, nummeas, numsel)
 
     @pyqtSlot()
     def on_Avg200StartBtn_clicked(self):
@@ -812,7 +818,34 @@ class MainWindow(QMainWindow, form1.Ui_MainWindow):
         if averages is None:
             return
 
-        self.start_trigger_measurement(integration_time, averages, 1, 1)
+        self.start_trigger_with_shutter_logic(integration_time, averages, 1, 1)
+
+    def start_trigger_with_shutter_logic(self, integration_time, averages, nummeas, numsel):
+        """When shutter logic is enabled, close the shutter first and only start the
+        measurement after the measured shutter latency has elapsed; otherwise start now."""
+        if not self.EnableShutterLogic.isChecked():
+            self.start_trigger_measurement(integration_time, averages, nummeas, numsel)
+            return
+
+        delay_ms = self.shutter_latency_ms
+        if delay_ms is None:
+            self.show_info_message("Measure shutter latency before enabling shutter logic")
+            return
+
+        try:
+            self.shutter.close()
+        except ShutterError as e:
+            self.show_info_message(str(e))
+            return
+        except Exception as e:
+            self.show_info_message(f"Shutter error: {e}")
+            return
+        self.update_shutter_button_style()
+
+        QTimer.singleShot(
+            int(round(delay_ms)),
+            lambda: self.start_trigger_measurement(integration_time, averages, nummeas, numsel),
+        )
 
     def start_trigger_measurement(self, integration_time, averages, nummeas, numsel):
         self.last_save_averaging = averages
