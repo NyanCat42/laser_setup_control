@@ -373,7 +373,7 @@ QPushButton:hover {
      </rect>
     </property>
     <property name="title">
-     <string>Shutter, ND filter rotation setup</string>
+     <string>Shutter setup</string>
     </property>
     <widget class="QLabel" name="label_5">
      <property name="geometry">
@@ -521,7 +521,7 @@ QPushButton:hover {
       </rect>
      </property>
      <property name="text">
-      <string>close shutter and measure after delay</string>
+      <string>close shutter and measure after delay)</string>
      </property>
     </widget>
     <widget class="QLabel" name="label_9">
