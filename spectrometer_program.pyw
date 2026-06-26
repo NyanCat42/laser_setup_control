@@ -156,9 +156,13 @@ class MainWindow(QMainWindow, form1.Ui_MainWindow):
             print(f"Error during closeEvent cleanup: {e}")
 
         print("Application is closing...")
-        qApp.quit()
-        sys.exit(0)
         event.accept()  # Ensure close event is accepted
+
+        # Hardware cleanup is done above. Force-terminate instead of returning to
+        # the event loop / sys.exit: the Ophir COM server runs in an STA and its
+        # comtypes atexit CoUninitialize blocks indefinitely at interpreter
+        # shutdown, leaving the process stuck on "Application is closing...".
+        os._exit(0)
 
 
     def show_info_message(self, message):
@@ -600,7 +604,6 @@ class MainWindow(QMainWindow, form1.Ui_MainWindow):
             self.LatencyResultLabel.setText("-- ms")
             self.show_info_message("No signal to measure latency against")
             return
-        threshold = (pct / 100.0) * original
 
         try:
             self.shutter.close()
@@ -618,14 +621,38 @@ class MainWindow(QMainWindow, form1.Ui_MainWindow):
         start = time.perf_counter()
         self.update_shutter_button_style()
 
-        timeout = 5.0
-        elapsed_ms = None
-        while time.perf_counter() - start < timeout:
+        # The signal does not drop to zero after the shutter closes; it settles at
+        # a non-zero baseline. Record the signal over a fixed window so the baseline
+        # can be measured once the shutter is fully closed, then locate the threshold
+        # crossing retrospectively against the baseline-relative drop range. (A naive
+        # absolute-percentage threshold never triggers when pct is below the
+        # baseline-to-peak ratio, causing a spurious timeout.)
+        settle_time = 1
+        samples = []  # (elapsed_seconds, value)
+        while time.perf_counter() - start < settle_time:
             QApplication.processEvents()
-            if self._read_peak_at_wavelength(target_nm) <= threshold:
-                elapsed_ms = (time.perf_counter() - start) * 1000.0
-                break
+            t = time.perf_counter() - start
+            samples.append((t, self._read_peak_at_wavelength(target_nm)))
             time.sleep(0.002)
+
+        if not samples:
+            self.shutter_latency_ms = None
+            self.LatencyResultLabel.setText("-- ms")
+            self.show_info_message("No samples captured during latency measurement")
+            return
+
+        # Baseline = mean of the last 0.5 s, by which point the shutter is fully closed.
+        baseline = float(np.mean([v for t, v in samples if t >= settle_time - 0.5]))
+        # Threshold is pct of the way down from the original peak toward the baseline.
+        threshold = baseline + (pct / 100.0) * (original - baseline)
+
+        elapsed_ms = None
+        for t, v in samples:
+            if v <= threshold:
+                elapsed_ms = t * 1000.0
+                break
+
+        self._show_latency_plot(samples, original, baseline, threshold, elapsed_ms, target_nm)
 
         if elapsed_ms is None:
             self.shutter_latency_ms = None
@@ -634,6 +661,39 @@ class MainWindow(QMainWindow, form1.Ui_MainWindow):
             return
         self.shutter_latency_ms = elapsed_ms
         self.LatencyResultLabel.setText(f"{elapsed_ms:.1f} ms")
+
+    def _show_latency_plot(self, samples, original, baseline, threshold, elapsed_ms, target_nm):
+        """Pop up an intensity-over-time plot of the shutter-latency capture,
+        annotated with the baseline, the drop threshold and the detected crossing."""
+        import pyqtgraph as pg
+
+        t_ms = np.array([t for t, _ in samples]) * 1000.0
+        values = np.array([v for _, v in samples])
+
+        win = pg.PlotWidget()
+        win.setWindowTitle(f"Shutter latency @ {target_nm:g} nm")
+        win.resize(640, 420)
+        win.setLabel('bottom', 'Time since shutter close', units='ms')
+        win.setLabel('left', f'Peak counts @ {target_nm:g} nm')
+        win.addLegend()
+
+        win.plot(t_ms, values, pen=pg.mkPen('y', width=2), name='intensity')
+        # Helper lines are thin and semi-transparent (alpha) so they don't bury
+        # the intensity trace; (R, G, B, A) tuples set the alpha.
+        win.addItem(pg.InfiniteLine(pos=original, angle=0,
+                    pen=pg.mkPen((0, 255, 0, 120), style=Qt.DashLine), label='original'))
+        win.addItem(pg.InfiniteLine(pos=baseline, angle=0,
+                    pen=pg.mkPen((0, 255, 255, 120), style=Qt.DashLine), label='baseline'))
+        win.addItem(pg.InfiniteLine(pos=threshold, angle=0,
+                    pen=pg.mkPen((255, 0, 0, 120), style=Qt.DashLine), label='threshold'))
+        if elapsed_ms is not None:
+            win.addItem(pg.InfiniteLine(pos=elapsed_ms, angle=90,
+                        pen=pg.mkPen((255, 0, 0, 120)), label=f'{elapsed_ms:.1f} ms'))
+
+        # Keep a reference so the window is not garbage-collected when this
+        # method returns; replace any previous one.
+        self._latency_plot_win = win
+        win.show()
 
     def on_simulate_toggled(self, checked):
         # The simulator clobbers the shared globals.wavelength / globals.pixels
