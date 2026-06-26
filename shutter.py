@@ -57,6 +57,7 @@ ROTATION_AXIS_INDEX = 1
 # not be enumerated.
 _ENUM_FLAGS = (
     ximc.EnumerateFlags.ENUMERATE_PROBE
+    | ximc.EnumerateFlags.ENUMERATE_ALL_COM
     | ximc.EnumerateFlags.ENUMERATE_NETWORK
 )
 

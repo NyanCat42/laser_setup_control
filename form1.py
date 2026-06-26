@@ -293,6 +293,21 @@ class Ui_MainWindow(object):
         self.SimulateData = QtWidgets.QCheckBox(self.centralwidget)
         self.SimulateData.setGeometry(QtCore.QRect(30, 1050, 231, 21))
         self.SimulateData.setObjectName("SimulateData")
+        self.groupBox_4 = QtWidgets.QGroupBox(self.centralwidget)
+        self.groupBox_4.setGeometry(QtCore.QRect(30, 929, 221, 121))
+        self.groupBox_4.setObjectName("groupBox_4")
+        self.InitialisePowerMeter = QtWidgets.QPushButton(self.groupBox_4)
+        self.InitialisePowerMeter.setGeometry(QtCore.QRect(10, 20, 75, 31))
+        self.InitialisePowerMeter.setObjectName("InitialisePowerMeter")
+        self.PowerMeterStatus = QtWidgets.QLabel(self.groupBox_4)
+        self.PowerMeterStatus.setGeometry(QtCore.QRect(100, 20, 111, 31))
+        self.PowerMeterStatus.setObjectName("PowerMeterStatus")
+        self.PowerMeterDisplay = QtWidgets.QLCDNumber(self.groupBox_4)
+        self.PowerMeterDisplay.setGeometry(QtCore.QRect(10, 60, 141, 51))
+        self.PowerMeterDisplay.setObjectName("PowerMeterDisplay")
+        self.PowerMeterUnits = QtWidgets.QLabel(self.groupBox_4)
+        self.PowerMeterUnits.setGeometry(QtCore.QRect(160, 90, 47, 13))
+        self.PowerMeterUnits.setObjectName("PowerMeterUnits")
         MainWindow.setCentralWidget(self.centralwidget)
 
         self.retranslateUi(MainWindow)
@@ -364,4 +379,18 @@ class Ui_MainWindow(object):
         self.label_26.setText(_translate("MainWindow", "Deadband (counts)"))
         self.RotationLoopDeadband.setText(_translate("MainWindow", "100"))
         self.SimulateData.setText(_translate("MainWindow", "Simulate spectrometer data (for debug)"))
+        self.groupBox_4.setTitle(_translate("MainWindow", "Power meter"))
+        self.InitialisePowerMeter.setText(_translate("MainWindow", "Initialise"))
+        self.PowerMeterStatus.setText(_translate("MainWindow", "Status"))
+        self.PowerMeterUnits.setText(_translate("MainWindow", "Units"))
 from plot import Plot
+
+
+if __name__ == "__main__":
+    import sys
+    app = QtWidgets.QApplication(sys.argv)
+    MainWindow = QtWidgets.QMainWindow()
+    ui = Ui_MainWindow()
+    ui.setupUi(MainWindow)
+    MainWindow.show()
+    sys.exit(app.exec_())

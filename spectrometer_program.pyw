@@ -1,7 +1,15 @@
 #!/usr/bin/env python3
 import os
-import platform
 import sys
+
+# Load the Ophir power-meter COM DLL graph BEFORE importing PyQt5 / pyqtgraph:
+# merely importing those loads Qt's own copies of shared DLLs, and if they load
+# first the Ophir DLL's init routine fails (WinError -2147023782). This must come
+# before every Qt-pulling import below. See power_meter.preload.
+import power_meter
+power_meter.preload()
+
+import platform
 import ctypes
 import ctypes.wintypes
 from PyQt5.QtCore import *
@@ -18,6 +26,7 @@ from shutter import (
     RotationController,
     RotationError,
 )
+from power_meter import PowerMeterController, PowerMeterError
 from simulator import SpectrometerSimulator
 from datetime import datetime
 from pyqtgraph import PlotDataItem
@@ -35,7 +44,11 @@ class MainWindow(QMainWindow, form1.Ui_MainWindow):
         self.create_title_bar()
         self.shutter = ShutterController()
         self.rotation = RotationController()
+        self.power_meter = PowerMeterController()
         self.simulator = SpectrometerSimulator()
+        # Real-device calibration backup, saved/restored by on_simulate_toggled.
+        self._real_wavelength = None
+        self._real_pixels = None
         self.AvgPresetEdit.setValidator(QIntValidator(1, 32767, self))
         self.AvgPresetEdit.textChanged.connect(self.update_avg_preset_button_text)
         # on_Avg200StartBtn_clicked / on_ShutterBtn_clicked are auto-connected by
@@ -55,6 +68,11 @@ class MainWindow(QMainWindow, form1.Ui_MainWindow):
         self.InitRotation.clicked.connect(self.on_init_rotation)
         self.MoveRotation.clicked.connect(self.on_move_rotation)
         self.MeasureLatencyBtn.clicked.connect(self.on_measure_latency)
+        self.InitialisePowerMeter.clicked.connect(self.on_init_power_meter)
+        self.set_power_meter_status("Not connected", "gray")
+        self.PowerMeterDisplay.setDigitCount(7)
+        self.PowerMeterDisplay.display("----")
+        self.PowerMeterUnits.setText("W")
         self.SimulateData.setChecked(getattr(globals, "simulate_data", False))
         self.SimulateData.toggled.connect(self.on_simulate_toggled)
         self.showMaximized()
@@ -90,6 +108,10 @@ class MainWindow(QMainWindow, form1.Ui_MainWindow):
         self.timer = QTimer(self)
         self.timer.timeout.connect(self.update_plot)
         self.timer.start(20)
+        # Separate, slower timer for the power meter: polling the Ophir COM server
+        # at the 50 Hz plot rate would be wasteful. Started on successful init.
+        self.power_timer = QTimer(self)
+        self.power_timer.timeout.connect(self.update_power_meter)
         self.newdata.connect(self.handle_newdata)
         self.set_acquisition_controls()
         self.on_OpenCommBtn_clicked()
@@ -115,6 +137,13 @@ class MainWindow(QMainWindow, form1.Ui_MainWindow):
                 self.rotation.disconnect()
             except Exception as rotation_err:
                 print(f"Error disconnecting rotation stage: {rotation_err}")
+
+            try:
+                if self.power_timer.isActive():
+                    self.power_timer.stop()
+                self.power_meter.disconnect()
+            except Exception as power_err:
+                print(f"Error disconnecting power meter: {power_err}")
 
             # Release AvaSpec library
             AVS_Done()
@@ -420,6 +449,67 @@ class MainWindow(QMainWindow, form1.Ui_MainWindow):
         except Exception as e:
             self.show_info_message(f"Rotation error: {e}")
 
+    def set_power_meter_status(self, text, color="black"):
+        self.PowerMeterStatus.setText(text)
+        self.PowerMeterStatus.setStyleSheet(f"color: {color};")
+
+    def on_init_power_meter(self):
+        if self.power_meter.is_connected:
+            # Toggle off: disconnect and stop polling.
+            self.power_timer.stop()
+            self.power_meter.disconnect()
+            self.set_power_meter_status("Not connected", "gray")
+            self.PowerMeterDisplay.display("----")
+            self.InitialisePowerMeter.setText("Initialise")
+            return
+        try:
+            serial = self.power_meter.initialize()
+        except PowerMeterError as e:
+            self.set_power_meter_status("Error", "red")
+            self.show_info_message(str(e))
+            return
+        except Exception as e:
+            self.set_power_meter_status("Error", "red")
+            self.show_info_message(f"Power meter error: {e}")
+            return
+        self.set_power_meter_status(f"Connected ({serial})", "green")
+        self.InitialisePowerMeter.setText("Disconnect")
+        self.power_timer.start(200)  # 5 Hz display update
+
+    @staticmethod
+    def _scale_power(watts):
+        """Scale a watt reading to a (value, unit) pair for display."""
+        a = abs(watts)
+        if a >= 1.0:
+            return watts, "W"
+        if a >= 1e-3:
+            return watts * 1e3, "mW"
+        if a >= 1e-6:
+            return watts * 1e6, "µW"
+        return watts * 1e9, "nW"
+
+    @pyqtSlot()
+    def update_power_meter(self):
+        if not self.power_meter.is_connected:
+            return
+        try:
+            watts = self.power_meter.read()
+        except PowerMeterError:
+            return
+        except Exception as e:
+            self.power_timer.stop()
+            self.power_meter.disconnect()
+            self.set_power_meter_status("Error", "red")
+            self.PowerMeterDisplay.display("----")
+            self.InitialisePowerMeter.setText("Initialise")
+            self.show_info_message(f"Power meter error: {e}")
+            return
+        if watts is None:
+            return  # no new sample buffered since last poll
+        value, unit = self._scale_power(watts)
+        self.PowerMeterDisplay.display(f"{value:.3f}")
+        self.PowerMeterUnits.setText(unit)
+
     def _read_peak_at_wavelength(self, target_nm, window_nm=5.0):
         """Peak counts within ±window_nm of target_nm, or full-spectrum max if wavelength data is unavailable."""
         data = getattr(globals, "spectraldata", None)
@@ -546,6 +636,18 @@ class MainWindow(QMainWindow, form1.Ui_MainWindow):
         self.LatencyResultLabel.setText(f"{elapsed_ms:.1f} ms")
 
     def on_simulate_toggled(self, checked):
+        # The simulator clobbers the shared globals.wavelength / globals.pixels
+        # (see update_plot). Back up the real device's calibration on the way in
+        # and restore it on the way out, otherwise the real spectrometer data
+        # keeps being plotted against the simulator's wavelength axis and appears
+        # shifted to lower wavelengths.
+        if checked:
+            self._real_wavelength = globals.wavelength
+            self._real_pixels = globals.pixels
+        else:
+            if getattr(self, "_real_wavelength", None) is not None:
+                globals.wavelength = self._real_wavelength
+                globals.pixels = self._real_pixels
         globals.simulate_data = checked
 
     def update_avg_preset_button_text(self):
