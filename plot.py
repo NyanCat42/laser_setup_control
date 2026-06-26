@@ -8,6 +8,8 @@ import globals
 import pyqtgraph as pg
 from pyqtgraph.Qt import QtGui, QtCore
 import numpy as np
+import time
+from collections import deque
 
 class Plot(QWidget):
     def __init__(self, parent=None):
@@ -46,6 +48,9 @@ class Plot(QWidget):
         self.plot_widget.setXRange(180, 1170)
         self.plot_widget.setYRange(-500, 72000)
 
+        # Show grid lines on both axes
+        self.plot_widget.showGrid(x=True, y=True, alpha=0.3)
+
 
 
         # Add a plot curve
@@ -79,6 +84,53 @@ class Plot(QWidget):
         self.l_line.sigPositionChanged.connect(self.on_l_margin_moved)
         self.r_line.sigPositionChanged.connect(self.on_r_margin_moved)
 
+        # --- Inset: power vs time over the last 5 minutes (top-right corner) ---
+        self.power_history_seconds = 300  # 5 minutes
+        self._power_times = deque()
+        self._power_values = deque()
+
+        # A small PlotWidget floating over the main spectrum. Child of the main
+        # plot_widget so it moves/clips with it; repositioned in resizeEvent.
+        self.power_inset = pg.PlotWidget(parent=self.plot_widget)
+        self.power_inset.setBackground((25, 25, 25, 220))
+        self.power_inset.setMenuEnabled(False)
+        self.power_inset.setMouseEnabled(x=False, y=False)
+        self.power_inset.hideButtons()
+        self.power_inset.setTitle("Power (last 5 min)", size="8pt")
+        self.power_inset.setLabel('bottom', 'Time', units='s')
+        self.power_inset.setLabel('left', 'Power', units='W')
+        tick_font = QtGui.QFont()
+        tick_font.setPointSize(7)
+        self.power_inset.getAxis('bottom').setStyle(tickFont=tick_font)
+        self.power_inset.getAxis('left').setStyle(tickFont=tick_font)
+        self.power_inset.setXRange(-self.power_history_seconds, 0, padding=0)
+        self.power_inset.showGrid(x=True, y=True, alpha=0.3)
+        self.power_curve = self.power_inset.plot(pen=pg.mkPen('c', width=1))
+        self.power_inset.raise_()
+        self._position_power_inset()
+
+    def _position_power_inset(self):
+        if not hasattr(self, "power_inset"):
+            return
+        margin = 10
+        w = max(180, int(self.plot_widget.width() * 0.28))
+        h = max(120, int(self.plot_widget.height() * 0.28))
+        x = self.plot_widget.width() - w - margin
+        self.power_inset.setGeometry(x, margin, w, h)
+
+    def add_power_sample(self, watts):
+        """Append a power reading (watts) and refresh the rolling 5-minute trace."""
+        now = time.monotonic()
+        self._power_times.append(now)
+        self._power_values.append(watts)
+        cutoff = now - self.power_history_seconds
+        while self._power_times and self._power_times[0] < cutoff:
+            self._power_times.popleft()
+            self._power_values.popleft()
+        t = np.fromiter(self._power_times, dtype=float) - now  # newest = 0, older negative
+        y = np.fromiter(self._power_values, dtype=float)
+        self.power_curve.setData(t, y)
+
     def update_plot(self):
         # Generate some dummy data
         x_data = np.array(globals.wavelength[:globals.pixels])
@@ -98,6 +150,7 @@ class Plot(QWidget):
     def resizeEvent(self, event):
         super(Plot, self).resizeEvent(event)
         self.update_count_limit_label()
+        self._position_power_inset()
 
     def update_count_limit_label(self):
         if not hasattr(self, "count_limit_label"):

@@ -342,7 +342,7 @@ QPushButton:hover {
      <rect>
       <x>30</x>
       <y>820</y>
-      <width>221</width>
+      <width>101</width>
       <height>51</height>
      </rect>
     </property>
@@ -353,10 +353,10 @@ QPushButton:hover {
    <widget class="QLineEdit" name="AvgPresetEdit">
     <property name="geometry">
      <rect>
-      <x>30</x>
-      <y>890</y>
-      <width>113</width>
-      <height>27</height>
+      <x>152</x>
+      <y>820</y>
+      <width>101</width>
+      <height>51</height>
      </rect>
     </property>
     <property name="text">
@@ -622,7 +622,7 @@ QPushButton:hover {
       <x>1670</x>
       <y>490</y>
       <width>221</width>
-      <height>581</height>
+      <height>531</height>
      </rect>
     </property>
     <property name="title">
@@ -737,12 +737,12 @@ QPushButton:hover {
       <rect>
        <x>10</x>
        <y>250</y>
-       <width>171</width>
+       <width>191</width>
        <height>16</height>
       </rect>
      </property>
      <property name="text">
-      <string>Target intensity (counts)</string>
+      <string>Target intensity (counts) / power (uW)</string>
      </property>
     </widget>
     <widget class="QLineEdit" name="RotationTargetIntensity">
@@ -750,7 +750,7 @@ QPushButton:hover {
       <rect>
        <x>20</x>
        <y>280</y>
-       <width>181</width>
+       <width>81</width>
        <height>31</height>
       </rect>
      </property>
@@ -788,39 +788,13 @@ QPushButton:hover {
      <property name="geometry">
       <rect>
        <x>20</x>
-       <y>550</y>
-       <width>191</width>
+       <y>500</y>
+       <width>91</width>
        <height>17</height>
       </rect>
      </property>
      <property name="text">
-      <string>Enable rotation stage logic</string>
-     </property>
-    </widget>
-    <widget class="QLabel" name="label_18">
-     <property name="geometry">
-      <rect>
-       <x>10</x>
-       <y>500</y>
-       <width>211</width>
-       <height>16</height>
-      </rect>
-     </property>
-     <property name="text">
-      <string>Enable logic (rotates ND filter to maintain</string>
-     </property>
-    </widget>
-    <widget class="QLabel" name="label_19">
-     <property name="geometry">
-      <rect>
-       <x>10</x>
-       <y>520</y>
-       <width>211</width>
-       <height>16</height>
-      </rect>
-     </property>
-     <property name="text">
-      <string>set intensity at set wavelength)</string>
+      <string>Enable logic</string>
      </property>
     </widget>
     <widget class="QLineEdit" name="RotationStep">
@@ -901,12 +875,38 @@ QPushButton:hover {
       <string>100</string>
      </property>
     </widget>
+    <widget class="QCheckBox" name="UsePowerLogic">
+     <property name="geometry">
+      <rect>
+       <x>90</x>
+       <y>350</y>
+       <width>131</width>
+       <height>17</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>Use power based logic</string>
+     </property>
+    </widget>
+    <widget class="QLineEdit" name="RotationTargetPower">
+     <property name="geometry">
+      <rect>
+       <x>120</x>
+       <y>280</y>
+       <width>81</width>
+       <height>31</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>50</string>
+     </property>
+    </widget>
    </widget>
    <widget class="QCheckBox" name="SimulateData">
     <property name="geometry">
      <rect>
       <x>30</x>
-      <y>1050</y>
+      <y>1020</y>
       <width>231</width>
       <height>21</height>
      </rect>
@@ -919,7 +919,7 @@ QPushButton:hover {
     <property name="geometry">
      <rect>
       <x>30</x>
-      <y>929</y>
+      <y>890</y>
       <width>221</width>
       <height>121</height>
      </rect>

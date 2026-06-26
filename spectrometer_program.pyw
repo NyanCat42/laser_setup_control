@@ -513,6 +513,7 @@ class MainWindow(QMainWindow, form1.Ui_MainWindow):
         value, unit = self._scale_power(watts)
         self.PowerMeterDisplay.display(f"{value:.3f}")
         self.PowerMeterUnits.setText(unit)
+        self.plot.add_power_sample(watts)
 
     def _read_peak_at_wavelength(self, target_nm, window_nm=5.0):
         """Peak counts within ±window_nm of target_nm, or full-spectrum max if wavelength data is unavailable."""
@@ -693,6 +694,60 @@ class MainWindow(QMainWindow, form1.Ui_MainWindow):
         # Keep a reference so the window is not garbage-collected when this
         # method returns; replace any previous one.
         self._latency_plot_win = win
+        win.show()
+
+    def _show_measurement_plot(self):
+        """Pop up the completed trigger / N-avg measurement spectrum, mirroring the
+        shutter-latency plot. Shows the raw averaged spectrum, the dark-subtracted
+        result (what gets saved) and the threshold window used to pick the peaks."""
+        import pyqtgraph as pg
+
+        sample_data = getattr(globals, "averagedspectrum", None)
+        if sample_data is None or len(sample_data) == 0:
+            return
+
+        pixels = globals.pixels
+        wl = np.array(globals.wavelength[:pixels])
+        averaged = np.array(sample_data[:pixels])
+
+        dark = getattr(globals, "darkspectraldata", None)
+        if dark is not None and len(dark) >= pixels:
+            corrected = averaged - np.array(dark[:pixels])
+        else:
+            corrected = None
+
+        averaging_number = getattr(self, "last_save_averaging", None)
+        if averaging_number is None:
+            try:
+                averaging_number = int(self.NumAvgEdt.text())
+            except (ValueError, AttributeError):
+                averaging_number = "?"
+
+        win = pg.PlotWidget()
+        win.setWindowTitle(f"Measurement (av {averaging_number}, {len(self.top_plots)} sel)")
+        win.resize(640, 420)
+        win.setLabel('bottom', 'Wavelength', units='nm')
+        win.setLabel('left', 'Counts')
+        win.addLegend()
+
+        # The individual selected spectra, faint, behind the averages.
+        for _, spectrum in self.top_plots:
+            win.plot(wl, np.array(spectrum[:pixels]),
+                     pen=pg.mkPen((128, 128, 128, 80), width=1))
+
+        win.plot(wl, averaged, pen=pg.mkPen('y', width=2), name='averaged')
+        if corrected is not None:
+            win.plot(wl, corrected, pen=pg.mkPen('g', width=2), name='dark-subtracted')
+
+        # Mark the threshold window the peak was searched in.
+        lo = max(0, min(self.trigger_min_idx, pixels - 1))
+        hi = max(lo, min(self.trigger_max_idx - 1, pixels - 1))
+        win.addItem(pg.LinearRegionItem(
+            values=(wl[lo], wl[hi]), movable=False,
+            brush=pg.mkBrush((255, 0, 0, 30)), pen=pg.mkPen((255, 0, 0, 100))))
+
+        # Keep a reference so the window is not garbage-collected; replace any previous one.
+        self._measurement_plot_win = win
         win.show()
 
     def on_simulate_toggled(self, checked):
@@ -1137,7 +1192,12 @@ class MainWindow(QMainWindow, form1.Ui_MainWindow):
         # Plot or save the averaged spectrum as needed
         self.avg_curve = self.plot.plot_widget.plot(globals.wavelength[:globals.pixels], globals.averagedspectrum)
         # self.plot.curve.setData(globals.wavelength[:globals.pixels], globals.averagedspectrum)
-        
+
+        # Pop up the actual measurement graph (averaged + dark-subtracted result)
+        # so the completed trigger / N-avg measurement can be inspected, mirroring
+        # the shutter-latency plot. Show it before the (blocking) save dialog.
+        self._show_measurement_plot()
+
         # Optionally save the averaged data
 
         initial_dir = os.path.dirname(self.last_save_path) if self.last_save_path else SCRIPT_DIR
