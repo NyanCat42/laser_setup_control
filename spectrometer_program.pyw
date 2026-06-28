@@ -61,7 +61,9 @@ class MainWindow(QMainWindow, form1.Ui_MainWindow):
         self.RotationLoopFrequency.setValidator(QDoubleValidator(self))
         self.RotationTargetWavelength.setValidator(QDoubleValidator(self))
         self.RotationTargetIntensity.setValidator(QDoubleValidator(self))
+        self.RotationTargetPower.setValidator(QDoubleValidator(self))
         self.RotationLoopDeadband.setValidator(QDoubleValidator(self))
+        self.RotationLoopDeadbandPower.setValidator(QDoubleValidator(self))
         self.LatencyWavelength.setValidator(QDoubleValidator(self))
         # Moving the yellow cursor on the graph fills in the latency wavelength,
         # so a latency measurement can be run right at the chosen wavelength.
@@ -107,6 +109,9 @@ class MainWindow(QMainWindow, form1.Ui_MainWindow):
         self.active_generation = 0
         self.shutter_latency_ms = None
         self._last_rotation_correction = 0.0
+        # Most recent power-meter reading (watts), shared with the rotation logic
+        # which runs off the faster plot timer rather than the power timer.
+        self._last_power_watts = None
         self._drag_pos = None
         
         self.timer = QTimer(self)
@@ -484,6 +489,7 @@ class MainWindow(QMainWindow, form1.Ui_MainWindow):
             # Toggle off: disconnect and stop polling.
             self.power_timer.stop()
             self.power_meter.disconnect()
+            self._last_power_watts = None
             self.set_power_meter_status("Not connected", "gray")
             self.PowerMeterDisplay.display("----")
             self.InitialisePowerMeter.setText("Initialise")
@@ -525,6 +531,7 @@ class MainWindow(QMainWindow, form1.Ui_MainWindow):
         except Exception as e:
             self.power_timer.stop()
             self.power_meter.disconnect()
+            self._last_power_watts = None
             self.set_power_meter_status("Error", "red")
             self.PowerMeterDisplay.display("----")
             self.InitialisePowerMeter.setText("Initialise")
@@ -532,6 +539,7 @@ class MainWindow(QMainWindow, form1.Ui_MainWindow):
             return
         if watts is None:
             return  # no new sample buffered since last poll
+        self._last_power_watts = watts
         value, unit = self._scale_power(watts)
         self.PowerMeterDisplay.display(f"{value:.3f}")
         self.PowerMeterUnits.setText(unit)
@@ -554,9 +562,10 @@ class MainWindow(QMainWindow, form1.Ui_MainWindow):
         return float(np.max(data[lo:hi]))
 
     def _run_rotation_logic(self):
-        """Bang-bang feedback: nudge the rotation stage (ND filter) to hold the intensity
-        at RotationTargetWavelength near RotationTargetIntensity. Runs off the plot timer;
-        the RotationLoopFrequency field throttles how often a correction actually fires."""
+        """Bang-bang feedback: nudge the rotation stage (ND filter) to hold either the
+        spectrometer peak intensity (default) or the power-meter reading
+        (UsePowerLogic) near its target. Runs off the plot timer; the
+        RotationLoopFrequency field throttles how often a correction actually fires."""
         if not self.EnableRotationLogic.isChecked():
             return
         # No-op until the stage is homed/initialised (also covers simulate/demo mode).
@@ -573,21 +582,37 @@ class MainWindow(QMainWindow, form1.Ui_MainWindow):
             return
 
         try:
-            target_nm = float(self.RotationTargetWavelength.text())
-            target_intensity = float(self.RotationTargetIntensity.text())
             step = float(self.RotationStep.text())
-            deadband = float(self.RotationLoopDeadband.text())
         except ValueError:
             return
 
-        current = self._read_peak_at_wavelength(target_nm)
-        if current <= 0:
-            return
+        if self.UsePowerLogic.isChecked():
+            # Power-based: hold the power meter at RotationTargetPower (µW).
+            if self._last_power_watts is None:
+                return  # power meter not connected / no reading yet
+            try:
+                target = float(self.RotationTargetPower.text())
+                deadband = float(self.RotationLoopDeadbandPower.text())
+            except ValueError:
+                return
+            current = self._last_power_watts * 1e6  # W -> µW
+        else:
+            # Intensity-based: hold the peak near RotationTargetWavelength at
+            # RotationTargetIntensity (counts).
+            try:
+                target_nm = float(self.RotationTargetWavelength.text())
+                target = float(self.RotationTargetIntensity.text())
+                deadband = float(self.RotationLoopDeadband.text())
+            except ValueError:
+                return
+            current = self._read_peak_at_wavelength(target_nm)
+            if current <= 0:
+                return
 
-        if current < target_intensity - deadband:
-            sign = 1   # too dim
-        elif current > target_intensity + deadband:
-            sign = -1  # too bright
+        if current < target - deadband:
+            sign = 1   # too low
+        elif current > target + deadband:
+            sign = -1  # too high
         else:
             return     # within deadband — hold
         if self.ReverseRotation.isChecked():
