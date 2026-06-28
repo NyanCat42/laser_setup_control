@@ -12,6 +12,9 @@ import time
 from collections import deque
 
 class Plot(QWidget):
+    # Emitted with the wavelength (nm) whenever the main yellow cursor moves.
+    cursor_moved = pyqtSignal(float)
+
     def __init__(self, parent=None):
         super(Plot, self).__init__(parent)
         self.plot_widget = pg.PlotWidget()
@@ -168,6 +171,7 @@ class Plot(QWidget):
         self.threshold_value = self.v_line.value()
         self.r_line.setValue(self.v_line.value() + self.margin_value)
         self.l_line.setValue(self.v_line.value() - self.margin_value)
+        self.cursor_moved.emit(self.threshold_value)
 
     def on_l_margin_moved(self):
         self.margin_value = abs(self.v_line.value() - self.l_line.value())

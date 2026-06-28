@@ -63,6 +63,10 @@ class MainWindow(QMainWindow, form1.Ui_MainWindow):
         self.RotationTargetIntensity.setValidator(QDoubleValidator(self))
         self.RotationLoopDeadband.setValidator(QDoubleValidator(self))
         self.LatencyWavelength.setValidator(QDoubleValidator(self))
+        # Moving the yellow cursor on the graph fills in the latency wavelength,
+        # so a latency measurement can be run right at the chosen wavelength.
+        self.plot.cursor_moved.connect(self.on_cursor_moved)
+        self.LatencyWavelength.setText(f"{self.plot.get_threshold_value():g}")
         self.LatencyPercentage.setValidator(QDoubleValidator(0.0, 100.0, 1, self))
         self.InitShutter.clicked.connect(self.on_init_shutter)
         self.InitRotation.clicked.connect(self.on_init_rotation)
@@ -584,6 +588,10 @@ class MainWindow(QMainWindow, form1.Ui_MainWindow):
             return
 
         self._last_rotation_correction = time.perf_counter()
+
+    def on_cursor_moved(self, wavelength):
+        """Mirror the yellow graph cursor's wavelength into the latency input."""
+        self.LatencyWavelength.setText(f"{wavelength:g}")
 
     def on_measure_latency(self):
         try:
