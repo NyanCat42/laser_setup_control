@@ -435,6 +435,22 @@ class MainWindow(QMainWindow, form1.Ui_MainWindow):
             self.show_info_message(f"Shutter error: {e}")
         self.update_shutter_button_style()
 
+    def update_rotation_target_display(self):
+        """Show the rotation stage's current angle in the RotationTarget field.
+
+        The field doubles as the move-target input, so only refresh it when the
+        user isn't editing it (no focus) to avoid clobbering a value they're typing.
+        """
+        if not self.rotation.is_initialized:
+            return
+        if self.RotationTarget.hasFocus():
+            return
+        try:
+            angle = self.rotation.get_angle()
+        except Exception:
+            return
+        self.RotationTarget.setText(f"{angle:.2f}")
+
     def on_init_rotation(self):
         try:
             self.rotation.initialize()
@@ -442,6 +458,7 @@ class MainWindow(QMainWindow, form1.Ui_MainWindow):
             self.show_info_message(str(e))
         except Exception as e:
             self.show_info_message(f"Rotation error: {e}")
+        self.update_rotation_target_display()
 
     def on_move_rotation(self):
         text = self.RotationTarget.text().strip()
@@ -456,6 +473,7 @@ class MainWindow(QMainWindow, form1.Ui_MainWindow):
             self.show_info_message(str(e))
         except Exception as e:
             self.show_info_message(f"Rotation error: {e}")
+        self.update_rotation_target_display()
 
     def set_power_meter_status(self, text, color="black"):
         self.PowerMeterStatus.setText(text)
@@ -588,6 +606,7 @@ class MainWindow(QMainWindow, form1.Ui_MainWindow):
             return
 
         self._last_rotation_correction = time.perf_counter()
+        self.update_rotation_target_display()
 
     def on_cursor_moved(self, wavelength):
         """Mirror the yellow graph cursor's wavelength into the latency input."""
